@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bill Bharo</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">होम</string>
+    <string name="nav_new_invoice">नया बिल</string>
+    <string name="nav_khata">खाता बही</string>
+    <string name="nav_inventory">स्टॉक</string>
+    <string name="nav_reports">रिपोर्ट</string>
+    <string name="nav_settings">सेटिंग्स</string>
+    
+    <!-- Home Screen -->
+    <string name="welcome">स्वागत है</string>
+    <string name="total_sales_today">आज की बिक्री</string>
+    <string name="pending_credit">बाकी राशि</string>
+    <string name="low_stock_items">कम स्टॉक</string>
+    <string name="items_text">वस्तुएं</string>
+    <string name="create_new_invoice">नया बिल बनाएं</string>
+    
+    <!-- Invoice -->
+    <string name="invoice_number">बिल नंबर</string>
+    <string name="customer_name">ग्राहक का नाम</string>
+    <string name="customer_phone">फोन नंबर</string>
+    <string name="add_item">वस्तु जोड़ें</string>
+    <string name="item_name">वस्तु का नाम</string>
+    <string name="quantity">मात्रा</string>
+    <string name="rate">दर</string>
+    <string name="amount">राशि</string>
+    <string name="subtotal">योग</string>
+    <string name="cgst">CGST</string>
+    <string name="sgst">SGST</string>
+    <string name="total">कुल राशि</string>
+    <string name="payment_mode">भुगतान विधि</string>
+    <string name="cash">नकद</string>
+    <string name="upi">UPI</string>
+    <string name="credit">उधार</string>
+    <string name="save_invoice">बिल सेव करें</string>
+    <string name="print_invoice">बिल प्रिंट करें</string>
+    <string name="generate_invoice">बिल बनाएं</string>
+    <string name="new_invoice">नया बिल</string>
+    
+    <!-- Voice Input -->
+    <string name="tap_to_speak">बोलने के लिए दबाएं</string>
+    <string name="listening">सुन रहे हैं...</string>
+    <string name="voice_input">आवाज से बिल बनाएं</string>
+    <string name="start_voice_input">आवाज शुरू करें</string>
+    <string name="stop_voice_input">आवाज बंद करें</string>
+    
+    <!-- Settings -->
+    <string name="settings">सेटिंग्स</string>
+    <string name="language">भाषा</string>
+    <string name="select_language">भाषा चुनें</string>
+    <string name="english">English</string>
+    <string name="hindi">हिंदी</string>
+    <string name="app_settings">ऐप सेटिंग्स</string>
+    <string name="language_settings">भाषा सेटिंग्स</string>
+    <string name="restart_app_message">भाषा बदलने के लिए कृपया ऐप को फिर से शुरू करें</string>
+    
+    <!-- Khata (Credit Book) -->
+    <string name="khata">खाता बही</string>
+    <string name="customers">ग्राहक</string>
+    <string name="total_credit">कुल उधार</string>
+    <string name="paid_amount">भुगतान राशि</string>
+    <string name="remaining_amount">बाकी राशि</string>
+    <string name="payment_history">भुगतान इतिहास</string>
+    <string name="add_payment">भुगतान जोड़ें</string>
+    <string name="no_customers">कोई ग्राहक नहीं मिला</string>
+    
+    <!-- Inventory -->
+    <string name="inventory">स्टॉक</string>
+    <string name="stock">माल</string>
+    <string name="add_stock">स्टॉक जोड़ें</string>
+    <string name="update_stock">स्टॉक अपडेट करें</string>
+    <string name="product_name">उत्पाद का नाम</string>
+    <string name="current_stock">वर्तमान स्टॉक</string>
+    <string name="reorder_level">री-ऑर्डर स्तर</string>
+    <string name="unit_price">इकाई मूल्य</string>
+    <string name="no_items">स्टॉक में कोई वस्तु नहीं</string>
+    
+    <!-- Reports -->
+    <string name="reports">रिपोर्ट</string>
+    <string name="sales_report">बिक्री रिपोर्ट</string>
+    <string name="daily_sales">दैनिक बिक्री</string>
+    <string name="weekly_sales">साप्ताहिक बिक्री</string>
+    <string name="monthly_sales">मासिक बिक्री</string>
+    <string name="total_invoices">कुल बिल</string>
+    <string name="total_revenue">कुल आय</string>
+    <string name="average_sale">औसत बिक्री</string>
+    
+    <!-- Common -->
+    <string name="save">सेव करें</string>
+    <string name="cancel">रद्द करें</string>
+    <string name="delete">डिलीट करें</string>
+    <string name="edit">एडिट करें</string>
+    <string name="search">खोजें</string>
+    <string name="filter">फ़िल्टर</string>
+    <string name="date">तारीख</string>
+    <string name="error">त्रुटि</string>
+    <string name="success">सफल</string>
+    <string name="ok">ठीक है</string>
+    <string name="yes">हां</string>
+    <string name="no">नहीं</string>
+    <string name="loading">लोड हो रहा है...</string>
+    <string name="no_data">कोई डेटा उपलब्ध नहीं</string>
+</resources>

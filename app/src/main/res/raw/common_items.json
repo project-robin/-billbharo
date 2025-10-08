@@ -1,0 +1,112 @@
+[
+  {
+    "name": "Rice",
+    "hindiName": "चावल",
+    "marathiName": "तांदूळ",
+    "alternateNames": ["basmati", "chawal", "tandul"],
+    "category": "Grains",
+    "defaultRate": 60.0,
+    "unit": "kg",
+    "hsnCode": "1006",
+    "gstRate": 0.0
+  },
+  {
+    "name": "Wheat Flour",
+    "hindiName": "आटा",
+    "marathiName": "पीठ",
+    "alternateNames": ["atta", "pith", "flour"],
+    "category": "Grains",
+    "defaultRate": 40.0,
+    "unit": "kg",
+    "hsnCode": "1101",
+    "gstRate": 0.0
+  },
+  {
+    "name": "Sugar",
+    "hindiName": "चीनी",
+    "marathiName": "साखर",
+    "alternateNames": ["chini", "sakhar"],
+    "category": "Sweeteners",
+    "defaultRate": 45.0,
+    "unit": "kg",
+    "hsnCode": "1701",
+    "gstRate": 0.0
+  },
+  {
+    "name": "Cooking Oil",
+    "hindiName": "तेल",
+    "marathiName": "तेल",
+    "alternateNames": ["tel", "oil", "sunflower", "mustard"],
+    "category": "Oils",
+    "defaultRate": 150.0,
+    "unit": "liter",
+    "hsnCode": "1507",
+    "gstRate": 5.0
+  },
+  {
+    "name": "Salt",
+    "hindiName": "नमक",
+    "marathiName": "मीठ",
+    "alternateNames": ["namak", "mith"],
+    "category": "Spices",
+    "defaultRate": 20.0,
+    "unit": "kg",
+    "hsnCode": "2501",
+    "gstRate": 0.0
+  },
+  {
+    "name": "Tea",
+    "hindiName": "चाय",
+    "marathiName": "चहा",
+    "alternateNames": ["chai", "chaha"],
+    "category": "Beverages",
+    "defaultRate": 500.0,
+    "unit": "kg",
+    "hsnCode": "0902",
+    "gstRate": 5.0
+  },
+  {
+    "name": "Milk",
+    "hindiName": "दूध",
+    "marathiName": "दूध",
+    "alternateNames": ["doodh"],
+    "category": "Dairy",
+    "defaultRate": 60.0,
+    "unit": "liter",
+    "hsnCode": "0401",
+    "gstRate": 0.0
+  },
+  {
+    "name": "Potato",
+    "hindiName": "आलू",
+    "marathiName": "बटाटा",
+    "alternateNames": ["aloo", "batata"],
+    "category": "Vegetables",
+    "defaultRate": 30.0,
+    "unit": "kg",
+    "hsnCode": "0701",
+    "gstRate": 0.0
+  },
+  {
+    "name": "Onion",
+    "hindiName": "प्याज",
+    "marathiName": "कांदा",
+    "alternateNames": ["pyaz", "kanda"],
+    "category": "Vegetables",
+    "defaultRate": 40.0,
+    "unit": "kg",
+    "hsnCode": "0703",
+    "gstRate": 0.0
+  },
+  {
+    "name": "Tomato",
+    "hindiName": "टमाटर",
+    "marathiName": "टोमॅटो",
+    "alternateNames": ["tamatar"],
+    "category": "Vegetables",
+    "defaultRate": 35.0,
+    "unit": "kg",
+    "hsnCode": "0702",
+    "gstRate": 0.0
+  }
+]
