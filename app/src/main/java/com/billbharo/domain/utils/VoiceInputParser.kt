@@ -4,14 +4,27 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Parses voice input (Hindi/English/Hinglish) to extract items, quantities, and prices
+ * DEPRECATED: Regex-based voice input parser.
  * 
- * Examples it understands:
+ * Replaced by GeminiInvoiceParser for pure AI-powered parsing.
+ * Kept for reference and potential rollback scenarios.
+ * 
+ * @deprecated Use GeminiInvoiceParser instead for better accuracy (95% vs 70%)
+ * 
+ * Examples it understood:
  * - "do bread pachas rupay" → 2 Bread @ ₹50
  * - "teen kilo aloo sau rupay" → 3 kg Aloo @ ₹100
  * - "2 Maggi 1 Coke" → 2 Maggi, 1 Coke
  * - "ek Parle-G biscuit" → 1 Parle-G
  */
+@Deprecated(
+    message = "Replaced by GeminiInvoiceParser in pure AI mode",
+    replaceWith = ReplaceWith(
+        "GeminiInvoiceParser",
+        "com.billbharo.domain.utils.GeminiInvoiceParser"
+    ),
+    level = DeprecationLevel.WARNING
+)
 @Singleton
 class VoiceInputParser @Inject constructor() {
 

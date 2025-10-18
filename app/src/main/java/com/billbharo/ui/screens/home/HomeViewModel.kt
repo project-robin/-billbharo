@@ -4,8 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.billbharo.data.models.Invoice
 import com.billbharo.data.repository.InvoiceRepository
+import com.billbharo.domain.utils.GeminiAudioTranscriber
+import com.billbharo.domain.utils.GeminiInvoiceParser
 import com.billbharo.domain.utils.ShareHelper
+import com.billbharo.domain.utils.VoiceTranscriptionResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,11 +21,22 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val invoiceRepository: InvoiceRepository,
-    private val shareHelper: ShareHelper
+    private val shareHelper: ShareHelper,
+    private val geminiAudioTranscriber: GeminiAudioTranscriber,
+    private val geminiInvoiceParser: GeminiInvoiceParser
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+    
+    private var voiceRecognitionJob: Job? = null
+    
+    override fun onCleared() {
+        super.onCleared()
+        // Cancel on ViewModel destruction (e.g., back button)
+        voiceRecognitionJob?.cancel()
+        geminiAudioTranscriber.stopRecording()
+    }
 
     init {
         loadDashboardData()
@@ -102,6 +117,103 @@ class HomeViewModel @Inject constructor(
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
+    
+    /**
+     * Start voice recording for invoice creation
+     */
+    fun startVoiceRecording() {
+        _uiState.value = _uiState.value.copy(
+            isVoiceRecording = true,
+            voiceRecordingStatus = "Initializing..."
+        )
+        
+        voiceRecognitionJob = viewModelScope.launch {
+            try {
+                geminiAudioTranscriber.transcribeAudio("hi-IN").collect { result ->
+                    when (result) {
+                        is VoiceTranscriptionResult.Ready -> {
+                            _uiState.value = _uiState.value.copy(
+                                voiceRecordingStatus = "Ready"
+                            )
+                        }
+                        is VoiceTranscriptionResult.Recording -> {
+                            _uiState.value = _uiState.value.copy(
+                                voiceRecordingStatus = "🎤 Speak now..."
+                            )
+                        }
+                        is VoiceTranscriptionResult.Processing -> {
+                            _uiState.value = _uiState.value.copy(
+                                voiceRecordingStatus = "🤖 Processing with Gemini..."
+                            )
+                        }
+                        is VoiceTranscriptionResult.Success -> {
+                            // Parse transcription into structured data
+                            processVoiceTranscription(result.transcription)
+                        }
+                        is VoiceTranscriptionResult.Error -> {
+                            _uiState.value = _uiState.value.copy(
+                                isVoiceRecording = false,
+                                voiceRecordingStatus = "",
+                                error = result.message
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isVoiceRecording = false,
+                    voiceRecordingStatus = "",
+                    error = "Voice recording failed: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    /**
+     * Stop voice recording - signals stop but allows processing to complete
+     */
+    fun stopVoiceRecording() {
+        // Don't cancel the job - let it complete naturally
+        // Just signal the audio recorder to stop recording
+        geminiAudioTranscriber.stopRecording()
+        
+        // Update UI to show processing
+        _uiState.value = _uiState.value.copy(
+            voiceRecordingStatus = "⏹️ Stopped, processing..."
+        )
+    }
+    
+    /**
+     * Process voice transcription with Gemini parser
+     */
+    private fun processVoiceTranscription(transcription: String) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(
+                    voiceRecordingStatus = "Parsing invoice data..."
+                )
+                
+                val result = geminiInvoiceParser.parseInvoiceItem(transcription)
+                
+                // Success - store result for navigation
+                _uiState.value = _uiState.value.copy(
+                    isVoiceRecording = false,
+                    voiceRecordingStatus = "",
+                    voiceResult = VoiceResult(
+                        itemName = result.itemName,
+                        quantity = result.quantity,
+                        price = result.price
+                    )
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isVoiceRecording = false,
+                    voiceRecordingStatus = "",
+                    error = "Failed to parse: ${e.message}"
+                )
+            }
+        }
+    }
 }
 
 data class HomeUiState(
@@ -111,5 +223,18 @@ data class HomeUiState(
     val recentInvoices: List<Invoice> = emptyList(),
     val totalInvoicesToday: Int = 0,
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    // Voice recording state
+    val isVoiceRecording: Boolean = false,
+    val voiceRecordingStatus: String = "",
+    val voiceResult: VoiceResult? = null
+)
+
+/**
+ * Voice recognition result for invoice creation
+ */
+data class VoiceResult(
+    val itemName: String,
+    val quantity: Double,
+    val price: Double
 )

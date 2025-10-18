@@ -1,7 +1,8 @@
 package com.billbharo.di
 
 import android.content.Context
-import com.billbharo.domain.utils.VoiceRecognitionHelper
+import com.billbharo.domain.utils.AudioRecorder
+import com.billbharo.domain.utils.GeminiAudioTranscriber
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -12,12 +13,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-
-    @Provides
-    @Singleton
-    fun provideVoiceRecognitionHelper(
-        @ApplicationContext context: Context
-    ): VoiceRecognitionHelper {
-        return VoiceRecognitionHelper(context)
-    }
+    // GeminiAudioTranscriber now uses Android SpeechRecognizer
+    // It's injected automatically via @Inject constructor with @ApplicationContext
+    // No manual DI needed - Hilt handles it
 }

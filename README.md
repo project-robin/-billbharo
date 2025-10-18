@@ -5,11 +5,12 @@
 
 ## ✨ Features
 
-### 🎤 AI-Powered Voice Input (NEW!)
-- ✅ **Google Gemini 2.0 Flash Integration**: Automatically extracts item name, quantity, and price
-- ✅ **95% Accuracy**: Understands Hindi, English, and Hinglish voice commands
-- ✅ **Smart Auto-Fill**: Confidence-based field population (≥85% threshold)
-- ✅ **Graceful Fallback**: Works offline with regex-based parsing
+### 🎤 AI-Powered Voice Input
+- ✅ **Android SpeechRecognizer**: Built-in voice-to-text (supports Hindi/English/Marathi)
+- ✅ **Gemini 2.5 Flash Parsing**: AI-powered extraction of item, quantity, and price
+- ✅ **95% Accuracy**: Understands Hinglish and mixed language commands
+- ✅ **Smart Auto-Fill**: Confidence-based field population
+- ✅ **Works Offline**: Basic speech recognition with online AI parsing
 
 ### MVP Features
 - ✅ Voice-to-text invoice creation (Hindi/English/Marathi)
@@ -37,7 +38,8 @@
 - **Architecture**: MVVM + Clean Architecture
 - **Database**: Room
 - **Dependency Injection**: Hilt
-- **AI/ML**: Google Gemini 2.0 Flash API
+- **Voice Recognition**: Android SpeechRecognizer
+- **AI/ML**: Google Gemini 2.5 Flash (parsing only)
 - **Navigation**: Navigation Compose
 - **Asynchronous**: Kotlin Coroutines + Flow
 
@@ -112,8 +114,8 @@ BillBharo/
 - **Kotlin Coroutines**: 1.8.1
 
 ### Additional Libraries
-- **Google Gemini SDK**: 0.9.0 (AI-powered parsing)
-- Google Play Services (Speech Recognition)
+- **Google Gemini AI SDK**: 0.9.0 (text parsing)
+- **Android SpeechRecognizer**: Built-in (voice-to-text)
 - iText7 (PDF Generation)
 - Gson (JSON parsing)
 - Accompanist (Permissions)
@@ -128,8 +130,8 @@ BillBharo/
 - **InventoryEntity**: Stock management
 
 ### Domain Layer
-- **GeminiInvoiceParser**: AI-powered structured data extraction
-- **VoiceRecognitionHelper**: Speech-to-text integration
+- **GeminiAudioTranscriber**: Android SpeechRecognizer wrapper
+- **GeminiInvoiceParser**: AI-powered text parsing (Gemini 2.5 Flash)
 - **VoiceInputParser**: Regex-based fallback parser
 - **GstCalculator**: GST calculation utilities
 - **Repositories**: Data access abstraction
@@ -160,6 +162,7 @@ BillBharo/
 ## 📖 Documentation
 
 - **[Gemini Setup Guide](GEMINI_SETUP.md)** - Detailed API configuration
+- **[Pure AI Mode Guide](PURE_AI_MODE.md)** - Gemini-only parsing architecture
 - **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Technical architecture
 - **[Quick Reference](QUICK_REFERENCE.md)** - Developer quick start
 - **[Deployment Checklist](DEPLOYMENT_CHECKLIST.md)** - Pre-release verification
@@ -168,9 +171,9 @@ BillBharo/
 
 - ✅ API keys stored securely in `BuildConfig` (never in source code)
 - ✅ `local.properties` excluded from version control
-- ✅ 10-second network timeout for API calls
+- ✅ 15-second timeout for Gemini API calls
 - ✅ No PII sent to Gemini (only transcribed text)
-- ✅ Graceful offline mode with fallback parsing
+- ✅ Android SpeechRecognizer runs locally (offline-capable)
 
 ## 🚀 Future Enhancements
 - [ ] Multi-item voice input parsing

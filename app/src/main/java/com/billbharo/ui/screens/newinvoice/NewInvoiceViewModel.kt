@@ -10,12 +10,10 @@ import com.billbharo.data.repository.InvoiceRepository
 import com.billbharo.domain.utils.GstCalculator
 import com.billbharo.domain.utils.PdfGenerator
 import com.billbharo.domain.utils.ShareHelper
-import com.billbharo.domain.utils.VoiceRecognitionHelper
-import com.billbharo.domain.utils.VoiceInputParser
-import com.billbharo.domain.utils.VoiceRecognitionResult
-import com.billbharo.domain.utils.ParseResult
+import com.billbharo.domain.utils.GeminiAudioTranscriber
+import com.billbharo.domain.utils.VoiceTranscriptionResult
 import com.billbharo.domain.utils.GeminiInvoiceParser
-import com.billbharo.domain.utils.GeminiParseResult
+import com.billbharo.domain.utils.GeminiParsingException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -64,11 +62,10 @@ class NewInvoiceViewModel @Inject constructor(
     private val gstCalculator: GstCalculator,
     private val pdfGenerator: PdfGenerator,
     private val shareHelper: ShareHelper,
-    private val voiceInputParser: VoiceInputParser,
-    private val geminiInvoiceParser: GeminiInvoiceParser
+    private val geminiInvoiceParser: GeminiInvoiceParser, // PURE AI MODE - no fallback parser
+    private val geminiAudioTranscriber: GeminiAudioTranscriber // Gemini-only audio transcription
 ) : ViewModel() {
 
-    private val voiceRecognitionHelper by lazy { VoiceRecognitionHelper(context) }
     private var voiceRecognitionJob: Job? = null
 
     private val _uiState = MutableStateFlow(NewInvoiceUiState())
@@ -161,47 +158,43 @@ class NewInvoiceViewModel @Inject constructor(
     fun startVoiceRecognition() {
         _uiState.value = _uiState.value.copy(
             isVoiceInputActive = true,
-            voiceStatus = "Initializing...",
+            voiceStatus = "Initializing Gemini...",
             voiceInputText = ""
         )
 
         voiceRecognitionJob = viewModelScope.launch {
             try {
-                voiceRecognitionHelper.startListening("hi-IN").collect { result ->
+                // GEMINI-ONLY TRANSCRIPTION: No Android SpeechRecognizer used
+                geminiAudioTranscriber.transcribeAudio("hi-IN").collect { result ->
                     when (result) {
-                        is VoiceRecognitionResult.Ready -> {
+                        is VoiceTranscriptionResult.Ready -> {
                             _uiState.value = _uiState.value.copy(
-                                voiceStatus = "Ready - Start speaking"
+                                voiceStatus = "Ready - Tap to speak"
                             )
                         }
-                        is VoiceRecognitionResult.Speaking -> {
+                        is VoiceTranscriptionResult.Recording -> {
                             _uiState.value = _uiState.value.copy(
-                                voiceStatus = "Listening..."
+                                voiceStatus = "🎤 Recording... Speak now"
                             )
                         }
-                        is VoiceRecognitionResult.Partial -> {
+                        is VoiceTranscriptionResult.Processing -> {
                             _uiState.value = _uiState.value.copy(
-                                voiceInputText = result.text,
-                                voiceStatus = "Processing..."
+                                voiceStatus = "🤖 Transcribing with Gemini AI..."
                             )
                         }
-                        is VoiceRecognitionResult.Success -> {
+                        is VoiceTranscriptionResult.Success -> {
                             _uiState.value = _uiState.value.copy(
-                                voiceInputText = result.text,
-                                voiceStatus = "Processing voice input..."
+                                voiceInputText = result.transcription,
+                                voiceStatus = "✅ Processing transcription..."
                             )
-                            processVoiceInput(result.text)
+                            // Now parse the Gemini transcription into structured data
+                            processVoiceInput(result.transcription)
                         }
-                        is VoiceRecognitionResult.Error -> {
+                        is VoiceTranscriptionResult.Error -> {
                             _uiState.value = _uiState.value.copy(
                                 isVoiceInputActive = false,
                                 voiceStatus = "",
                                 errorMessage = result.message
-                            )
-                        }
-                        is VoiceRecognitionResult.EndSpeech -> {
-                            _uiState.value = _uiState.value.copy(
-                                voiceStatus = "Processing..."
                             )
                         }
                     }
@@ -210,7 +203,7 @@ class NewInvoiceViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isVoiceInputActive = false,
                     voiceStatus = "",
-                    errorMessage = "Voice recognition failed: ${e.message}"
+                    errorMessage = "Gemini transcription failed: ${e.message}"
                 )
             }
         }
@@ -218,7 +211,7 @@ class NewInvoiceViewModel @Inject constructor(
 
     fun stopVoiceRecognition() {
         voiceRecognitionJob?.cancel()
-        voiceRecognitionHelper.stopListening()
+        geminiAudioTranscriber.stopRecording()
         _uiState.value = _uiState.value.copy(
             isVoiceInputActive = false,
             voiceStatus = "",
@@ -230,70 +223,59 @@ class NewInvoiceViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(voiceInputText = text)
     }
 
-    // Stage 1: STT → Text; Stage 2: Text → Gemini → Structured Data (auto-fill if high confidence)
+    // PURE AI MODE: Only Gemini - no fallbacks, exposes AI limitations for testing
     private fun processVoiceInput(text: String) {
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(
-                    voiceStatus = "Analyzing with AI..."
+                    voiceStatus = "Processing with Gemini AI..."
                 )
 
-                // Try Gemini first (preferred method)
+                // ONLY Gemini - throws exceptions on failure
                 val geminiResult = geminiInvoiceParser.parseInvoiceItem(text)
                 
-                if (geminiResult != null) {
-                    // ✅ Gemini succeeded with high confidence → Auto-fill form
-                    _uiState.value = _uiState.value.copy(
-                        isVoiceInputActive = false,
-                        voiceInputText = "",
-                        voiceStatus = "",
-                        voiceRecognizedItemName = geminiResult.itemName,
-                        voiceRecognizedQuantity = if (geminiResult.quantity > 0) geminiResult.quantity.toString() else "",
-                        voiceRecognizedPrice = if (geminiResult.price > 0) geminiResult.price.toString() else "",
-                        showAddItemDialog = true
-                    )
-                } else {
-                    // ❌ Gemini failed/low confidence → Fallback to regex parser (backward compatibility)
-                    val parseResult = voiceInputParser.parseVoiceInput(text)
-                    
-                    when (parseResult) {
-                        is ParseResult.Success -> {
-                            val firstItem = parseResult.items.firstOrNull()
-                            if (firstItem != null) {
-                                _uiState.value = _uiState.value.copy(
-                                    isVoiceInputActive = false,
-                                    voiceInputText = "",
-                                    voiceStatus = "",
-                                    voiceRecognizedItemName = firstItem.name,
-                                    voiceRecognizedQuantity = if (firstItem.quantity > 0) firstItem.quantity.toString() else "",
-                                    voiceRecognizedPrice = if (firstItem.price != null && firstItem.price > 0) firstItem.price.toString() else "",
-                                    showAddItemDialog = true
-                                )
-                            } else {
-                                _uiState.value = _uiState.value.copy(
-                                    isVoiceInputActive = false,
-                                    voiceInputText = "",
-                                    voiceStatus = "",
-                                    errorMessage = "Could not recognize any items"
-                                )
-                            }
-                        }
-                        is ParseResult.Error -> {
-                            _uiState.value = _uiState.value.copy(
-                                isVoiceInputActive = false,
-                                voiceInputText = "",
-                                voiceStatus = "",
-                                errorMessage = parseResult.message
-                            )
-                        }
-                    }
-                }
-            } catch (e: Exception) {
+                // ✅ Gemini succeeded - auto-fill ALL fields (no confidence filtering)
                 _uiState.value = _uiState.value.copy(
                     isVoiceInputActive = false,
                     voiceInputText = "",
                     voiceStatus = "",
-                    errorMessage = "Failed to process voice input: ${e.message}"
+                    voiceRecognizedItemName = geminiResult.itemName,
+                    voiceRecognizedQuantity = geminiResult.quantity.toString(),
+                    voiceRecognizedPrice = geminiResult.price.toString(),
+                    showAddItemDialog = true
+                )
+                
+            } catch (e: GeminiParsingException) {
+                // Detailed AI failure context for debugging
+                _uiState.value = _uiState.value.copy(
+                    isVoiceInputActive = false,
+                    voiceInputText = "",
+                    voiceStatus = "",
+                    errorMessage = "Gemini AI Failed:\n${e.message}\n\nPlease try again with clearer speech."
+                )
+            } catch (e: IllegalStateException) {
+                // API key not configured
+                _uiState.value = _uiState.value.copy(
+                    isVoiceInputActive = false,
+                    voiceInputText = "",
+                    voiceStatus = "",
+                    errorMessage = "Setup Required: ${e.message}"
+                )
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                // Network timeout
+                _uiState.value = _uiState.value.copy(
+                    isVoiceInputActive = false,
+                    voiceInputText = "",
+                    voiceStatus = "",
+                    errorMessage = "Gemini request timed out (15s). Check your internet connection."
+                )
+            } catch (e: Exception) {
+                // Unexpected error
+                _uiState.value = _uiState.value.copy(
+                    isVoiceInputActive = false,
+                    voiceInputText = "",
+                    voiceStatus = "",
+                    errorMessage = "Unexpected error: ${e.javaClass.simpleName} - ${e.message}"
                 )
             }
         }
