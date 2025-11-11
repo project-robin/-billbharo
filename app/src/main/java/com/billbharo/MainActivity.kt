@@ -24,41 +24,60 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * The main and only activity in the Bill Bharo application.
+ *
+ * This activity serves as the entry point for the app and hosts the Jetpack Compose content.
+ * It is responsible for setting up the UI theme, navigation graph, and handling language
+ * preference changes.
+ */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    
+
+    /**
+     * Injected instance of [PreferencesManager] for accessing user preferences, such as language.
+     */
     @Inject
     lateinit var preferencesManager: PreferencesManager
-    
+
+    /**
+     * Attaches the base context with the appropriate locale based on user preferences.
+     * This is called before [onCreate] to ensure the correct resources are loaded.
+     */
     override fun attachBaseContext(newBase: Context) {
-        // This will be updated when language preference is loaded
+        // The locale will be updated dynamically in onCreate, but this ensures initial setup.
         super.attachBaseContext(newBase)
     }
-    
+
+    /**
+     * Called when the activity is first created.
+     *
+     * This method sets up the main content view using Jetpack Compose, initializes the theme,
+     * sets up the navigation graph, and handles dynamic language changes.
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Load and apply language preference
+
+        // Load and apply the saved language preference at startup.
         lifecycleScope.launch {
             val language = preferencesManager.languageFlow.first()
             LocaleHelper.setLocale(this@MainActivity, language)
         }
-        
+
         setContent {
             var currentLanguage by remember { mutableStateOf("") }
-            
-            // Observe language changes
+
+            // Observe changes in the language preference and recreate the activity to apply them.
             LaunchedEffect(Unit) {
                 preferencesManager.languageFlow.collect { language ->
                     if (currentLanguage.isNotEmpty() && currentLanguage != language) {
-                        // Language changed, apply new locale
                         LocaleHelper.setLocale(this@MainActivity, language)
-                        recreate() // Recreate activity to apply language change
+                        recreate() // Recreating the activity is necessary to apply the new locale.
                     }
                     currentLanguage = language
                 }
             }
-            
+
             BillBharoTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),

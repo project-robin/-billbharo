@@ -13,6 +13,14 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.billbharo.R
 
+/**
+ * A composable function that displays the Reports screen.
+ *
+ * This screen is intended to show sales reports and analytics, but currently displays a
+ * placeholder message indicating that the feature is under development.
+ *
+ * @param navController The [NavController] for handling navigation actions, such as going back.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(

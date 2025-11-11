@@ -10,18 +10,26 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * AudioRecorder - Captures raw PCM audio for Gemini transcription.
- * Configured for optimal Gemini 2.0 Flash audio processing.
+ * Handles the recording of raw PCM audio data, optimized for Gemini 2.0 Flash transcription.
+ *
+ * This class manages the [AudioRecord] instance, handles the recording process, and converts
+ * the captured audio to the WAV format required by the Gemini API.
  */
 @Singleton
 class AudioRecorder @Inject constructor() {
 
     companion object {
-        // Gemini 2.0 Flash recommended audio format
-        private const val SAMPLE_RATE = 16000 // 16 kHz
+        /** The recommended sample rate for Gemini 2.0 Flash (16 kHz). */
+        private const val SAMPLE_RATE = 16000
+
+        /** The channel configuration for mono audio. */
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
+
+        /** The audio encoding format (16-bit PCM). */
         private const val AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT
-        private const val MAX_RECORDING_DURATION_MS = 30_000L // 30 seconds max
+
+        /** The maximum duration for a single recording (30 seconds). */
+        private const val MAX_RECORDING_DURATION_MS = 30_000L
     }
 
     private var audioRecord: AudioRecord? = null
@@ -33,9 +41,12 @@ class AudioRecorder @Inject constructor() {
     )
 
     /**
-     * Start recording audio.
-     * @return ByteArray of PCM audio data (16-bit, 16kHz, mono)
-     * @throws AudioRecordingException if recording fails
+     * Starts the audio recording process.
+     *
+     * Captures raw PCM audio, stops after a maximum duration, and converts the data to WAV format.
+     *
+     * @return A [ByteArray] containing the audio data in WAV format.
+     * @throws AudioRecordingException if the recording fails for any reason.
      */
     suspend fun recordAudio(): ByteArray = withContext(Dispatchers.IO) {
         if (bufferSize == AudioRecord.ERROR || bufferSize == AudioRecord.ERROR_BAD_VALUE) {
@@ -65,7 +76,7 @@ class AudioRecorder @Inject constructor() {
 
             while (isRecording && (System.currentTimeMillis() - startTime) < MAX_RECORDING_DURATION_MS) {
                 val readBytes = audioRecord?.read(buffer, 0, buffer.size) ?: 0
-                
+
                 if (readBytes > 0) {
                     outputStream.write(buffer, 0, readBytes)
                 } else if (readBytes == AudioRecord.ERROR_INVALID_OPERATION) {
@@ -76,7 +87,7 @@ class AudioRecorder @Inject constructor() {
             }
 
             val pcmData = outputStream.toByteArray()
-            
+
             if (pcmData.isEmpty()) {
                 throw AudioRecordingException("No audio data captured")
             }
@@ -94,7 +105,7 @@ class AudioRecorder @Inject constructor() {
     }
 
     /**
-     * Stop recording immediately.
+     * Stops the audio recording immediately and releases resources.
      */
     fun stopRecording() {
         isRecording = false
@@ -109,27 +120,31 @@ class AudioRecorder @Inject constructor() {
     }
 
     /**
-     * Check if recording is currently active.
+     * Checks if the audio recorder is currently active.
+     *
+     * @return `true` if recording is in progress, `false` otherwise.
      */
     fun isRecording(): Boolean = isRecording
 
     /**
-     * Convert raw PCM data to WAV format with proper headers.
-     * Gemini requires WAV/MP3/FLAC - raw PCM is not supported.
+     * Converts raw PCM audio data to WAV format by adding the necessary headers.
+     *
+     * @param pcmData The raw PCM audio data.
+     * @return A [ByteArray] containing the audio data in WAV format.
      */
     private fun convertPcmToWav(pcmData: ByteArray): ByteArray {
         val wavOutputStream = ByteArrayOutputStream()
-        
+
         // WAV header structure
         val totalDataLen = pcmData.size + 36
         val channels = 1 // Mono
         val byteRate = SAMPLE_RATE * channels * 2 // 16-bit = 2 bytes
-        
+
         // Write WAV header
         wavOutputStream.write("RIFF".toByteArray()) // ChunkID
         wavOutputStream.write(intToByteArray(totalDataLen), 0, 4) // ChunkSize
         wavOutputStream.write("WAVE".toByteArray()) // Format
-        
+
         // Subchunk1 (fmt)
         wavOutputStream.write("fmt ".toByteArray()) // Subchunk1ID
         wavOutputStream.write(intToByteArray(16), 0, 4) // Subchunk1Size (16 for PCM)
@@ -139,17 +154,17 @@ class AudioRecorder @Inject constructor() {
         wavOutputStream.write(intToByteArray(byteRate), 0, 4) // ByteRate
         wavOutputStream.write(shortToByteArray(4), 0, 2) // BlockAlign (channels * bitsPerSample/8)
         wavOutputStream.write(shortToByteArray(16), 0, 2) // BitsPerSample
-        
+
         // Subchunk2 (data)
         wavOutputStream.write("data".toByteArray()) // Subchunk2ID
         wavOutputStream.write(intToByteArray(pcmData.size), 0, 4) // Subchunk2Size
         wavOutputStream.write(pcmData) // Actual audio data
-        
+
         return wavOutputStream.toByteArray()
     }
-    
+
     /**
-     * Convert int to little-endian byte array.
+     * Converts an integer to a little-endian byte array.
      */
     private fun intToByteArray(value: Int): ByteArray {
         return byteArrayOf(
@@ -159,9 +174,9 @@ class AudioRecorder @Inject constructor() {
             (value shr 24 and 0xFF).toByte()
         )
     }
-    
+
     /**
-     * Convert short to little-endian byte array.
+     * Converts a short to a little-endian byte array.
      */
     private fun shortToByteArray(value: Short): ByteArray {
         return byteArrayOf(
@@ -172,7 +187,10 @@ class AudioRecorder @Inject constructor() {
 }
 
 /**
- * Exception thrown when audio recording fails.
+ * Custom exception for handling audio recording errors.
+ *
+ * @param message A descriptive error message.
+ * @param cause The underlying cause of the exception (optional).
  */
 class AudioRecordingException(
     message: String,

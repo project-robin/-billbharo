@@ -15,10 +15,17 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * GeminiAudioTranscriber - Uses Android SpeechRecognizer (Step 1) + Gemini text parsing (Step 2)
- * Architecture: Voice → Android STT → Text → Gemini NLU → Structured Data
- * 
- * Supports Hindi, English, Marathi, and Hinglish
+ * Handles the first step of the voice-to-invoice process: transcribing audio to text.
+ *
+ * This class uses the Android [SpeechRecognizer] to convert spoken language into a text string.
+ * It supports multiple languages and provides a [Flow]-based API to report the state of the
+ * transcription process.
+ *
+ * The overall architecture is a two-step process:
+ * 1.  **Voice → Android STT → Text** (handled by this class)
+ * 2.  **Text → Gemini NLU → Structured Data** (handled by [GeminiInvoiceParser])
+ *
+ * @property context The application context, provided by Hilt.
  */
 @Singleton
 class GeminiAudioTranscriber @Inject constructor(
@@ -28,25 +35,29 @@ class GeminiAudioTranscriber @Inject constructor(
     companion object {
         private const val TAG = "GeminiTranscriber"
     }
-    
+
     private var speechRecognizer: SpeechRecognizer? = null
 
-
     /**
-     * STEP 1: Use Android SpeechRecognizer to convert voice to text
-     * Returns a Flow emitting transcription states
+     * Starts the audio transcription process using the Android [SpeechRecognizer].
+     *
+     * This function returns a [Flow] that emits [VoiceTranscriptionResult] states, allowing the UI
+     * to react to the different stages of speech recognition (e.g., ready, recording, success, error).
+     *
+     * @param language The language code for speech recognition (e.g., "hi-IN" for Hindi).
+     * @return A [Flow] of [VoiceTranscriptionResult] representing the transcription state.
      */
     fun transcribeAudio(language: String = "hi-IN"): Flow<VoiceTranscriptionResult> = callbackFlow {
         Log.d(TAG, "Starting speech recognition for language: $language")
-        
+
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             trySend(VoiceTranscriptionResult.Error("Speech recognition not available on this device"))
             close()
             return@callbackFlow
         }
-        
+
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
-        
+
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
@@ -54,26 +65,26 @@ class GeminiAudioTranscriber @Inject constructor(
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
             putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak item, quantity, and price...")
         }
-        
+
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
                 Log.d(TAG, "Ready for speech")
                 trySend(VoiceTranscriptionResult.Ready)
             }
-            
+
             override fun onBeginningOfSpeech() {
                 Log.d(TAG, "Speech started")
                 trySend(VoiceTranscriptionResult.Recording)
             }
-            
+
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
-            
+
             override fun onEndOfSpeech() {
                 Log.d(TAG, "Speech ended, processing...")
                 trySend(VoiceTranscriptionResult.Processing)
             }
-            
+
             override fun onError(error: Int) {
                 val errorMessage = when (error) {
                     SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
@@ -91,7 +102,7 @@ class GeminiAudioTranscriber @Inject constructor(
                 trySend(VoiceTranscriptionResult.Error(errorMessage))
                 close()
             }
-            
+
             override fun onResults(results: Bundle?) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 if (!matches.isNullOrEmpty()) {
@@ -104,17 +115,17 @@ class GeminiAudioTranscriber @Inject constructor(
                 }
                 close()
             }
-            
+
             override fun onPartialResults(partialResults: Bundle?) {
                 val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 if (!matches.isNullOrEmpty()) {
                     Log.d(TAG, "Partial: ${matches[0]}")
                 }
             }
-            
+
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
-        
+
         try {
             trySend(VoiceTranscriptionResult.Ready)
             speechRecognizer?.startListening(intent)
@@ -123,16 +134,18 @@ class GeminiAudioTranscriber @Inject constructor(
             trySend(VoiceTranscriptionResult.Error("Failed to start: ${e.message}"))
             close()
         }
-        
+
         awaitClose {
             Log.d(TAG, "Stopping speech recognition")
             stopRecording()
         }
     }
 
-
     /**
-     * Stop speech recognition
+     * Stops the speech recognition process and releases resources.
+     *
+     * This should be called when the transcription is no longer needed, such as when the
+     * user navigates away from the screen.
      */
     fun stopRecording() {
         try {
@@ -147,13 +160,28 @@ class GeminiAudioTranscriber @Inject constructor(
 }
 
 /**
- * Result states for voice transcription flow.
+ * Represents the different states of the voice transcription process.
  */
 sealed class VoiceTranscriptionResult {
+    /** The speech recognizer is ready to start listening. */
     object Ready : VoiceTranscriptionResult()
+
+    /** The speech recognizer is currently recording audio. */
     object Recording : VoiceTranscriptionResult()
+
+    /** The speech recognizer has finished recording and is processing the audio. */
     object Processing : VoiceTranscriptionResult()
+
+    /**
+     * The speech recognizer successfully transcribed the audio.
+     * @property transcription The transcribed text.
+     */
     data class Success(val transcription: String) : VoiceTranscriptionResult()
+
+    /**
+     * An error occurred during the transcription process.
+     * @property message A descriptive error message.
+     */
     data class Error(val message: String) : VoiceTranscriptionResult()
 }
 

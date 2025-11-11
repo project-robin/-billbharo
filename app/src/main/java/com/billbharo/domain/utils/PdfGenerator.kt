@@ -23,16 +23,16 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Generates GST-compliant PDF invoices using iText7
- * 
- * Features:
- * - Professional invoice layout
- * - GST compliance (CGST/SGST breakdown)
- * - Shop details (GSTIN, address)
- * - Customer information
- * - Item list with HSN codes
- * - Tax calculations
- * - Invoice number and date
+ * A utility for generating professional, GST-compliant PDF invoices using the iText7 library.
+ *
+ * This class handles the entire PDF creation process, including:
+ * - Setting up the document structure and layout.
+ * - Adding shop and customer details.
+ * - Creating a detailed table of invoice items.
+ * - Calculating and displaying the GST breakdown (CGST/SGST) and totals.
+ * - Saving the generated PDF to the device's external storage.
+ *
+ * @property context The application context, used for accessing file storage.
  */
 @Singleton
 class PdfGenerator @Inject constructor(
@@ -48,7 +48,11 @@ class PdfGenerator @Inject constructor(
     }
 
     /**
-     * Generate PDF invoice and return file path
+     * Generates a PDF for the given invoice and saves it to a file.
+     *
+     * @param invoice The [Invoice] object containing the data to be included in the PDF.
+     * @return A [Result] object containing the absolute file path of the generated PDF on success,
+     *         or an exception on failure.
      */
     fun generateInvoicePdf(invoice: Invoice): Result<String> {
         return try {
@@ -57,8 +61,8 @@ class PdfGenerator @Inject constructor(
                 context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
                 "BillBharo/Invoices"
             )
-            
-            // Create directory if it doesn't exist
+
+            // Create the directory if it doesn't exist
             if (!directory.exists()) {
                 directory.mkdirs()
             }
@@ -68,11 +72,11 @@ class PdfGenerator @Inject constructor(
             val pdfDocument = PdfDocument(pdfWriter)
             val document = Document(pdfDocument)
 
-            // Set document properties
+            // Set document metadata
             pdfDocument.documentInfo.title = "Tax Invoice - ${invoice.invoiceNumber}"
             pdfDocument.documentInfo.author = SHOP_NAME
 
-            // Build PDF content
+            // Build the PDF content by adding various sections
             addHeader(document)
             addShopDetails(document)
             addInvoiceDetails(document, invoice)
@@ -90,7 +94,9 @@ class PdfGenerator @Inject constructor(
     }
 
     /**
-     * Add header with "TAX INVOICE" title
+     * Adds the main "TAX INVOICE" header to the document.
+     *
+     * @param document The iText [Document] to which the header will be added.
      */
     private fun addHeader(document: Document) {
         val header = Paragraph("TAX INVOICE")
@@ -112,7 +118,9 @@ class PdfGenerator @Inject constructor(
     }
 
     /**
-     * Add shop/seller details
+     * Adds the shop's details (name, address, contact info, GSTIN) to the document.
+     *
+     * @param document The iText [Document] to which the details will be added.
      */
     private fun addShopDetails(document: Document) {
         val table = Table(2)
@@ -124,40 +132,28 @@ class PdfGenerator @Inject constructor(
             Cell().add(Paragraph(SHOP_NAME).setBold().setFontSize(14f))
                 .setBorder(Border.NO_BORDER)
         )
-        table.addCell(
-            Cell().add(Paragraph(""))
-                .setBorder(Border.NO_BORDER)
-        )
+        table.addCell(Cell().add(Paragraph("")).setBorder(Border.NO_BORDER))
 
         // Address
         table.addCell(
             Cell().add(Paragraph(SHOP_ADDRESS).setFontSize(10f))
                 .setBorder(Border.NO_BORDER)
         )
-        table.addCell(
-            Cell().add(Paragraph(""))
-                .setBorder(Border.NO_BORDER)
-        )
+        table.addCell(Cell().add(Paragraph("")).setBorder(Border.NO_BORDER))
 
         // Contact details
         table.addCell(
             Cell().add(Paragraph("Phone: $SHOP_PHONE").setFontSize(10f))
                 .setBorder(Border.NO_BORDER)
         )
-        table.addCell(
-            Cell().add(Paragraph(""))
-                .setBorder(Border.NO_BORDER)
-        )
+        table.addCell(Cell().add(Paragraph("")).setBorder(Border.NO_BORDER))
 
         // GSTIN
         table.addCell(
             Cell().add(Paragraph("GSTIN: $SHOP_GSTIN").setBold().setFontSize(10f))
                 .setBorder(Border.NO_BORDER)
         )
-        table.addCell(
-            Cell().add(Paragraph(""))
-                .setBorder(Border.NO_BORDER)
-        )
+        table.addCell(Cell().add(Paragraph("")).setBorder(Border.NO_BORDER))
 
         document.add(table)
         document.add(
@@ -171,7 +167,10 @@ class PdfGenerator @Inject constructor(
     }
 
     /**
-     * Add invoice details (number, date)
+     * Adds the invoice number and date to the document.
+     *
+     * @param document The iText [Document] to which the details will be added.
+     * @param invoice The [Invoice] object containing the data.
      */
     private fun addInvoiceDetails(document: Document, invoice: Invoice) {
         val dateFormat = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault())
@@ -197,7 +196,10 @@ class PdfGenerator @Inject constructor(
     }
 
     /**
-     * Add customer/buyer details
+     * Adds the customer's details ("Bill To" section) to the document.
+     *
+     * @param document The iText [Document] to which the details will be added.
+     * @param invoice The [Invoice] object containing the customer data.
      */
     private fun addCustomerDetails(document: Document, invoice: Invoice) {
         val table = Table(1)
@@ -230,7 +232,12 @@ class PdfGenerator @Inject constructor(
     }
 
     /**
-     * Add items table with HSN, quantity, rate, amount
+     * Adds a table of the invoice items to the document.
+     *
+     * The table includes columns for item description, HSN code, quantity, rate, and total amount.
+     *
+     * @param document The iText [Document] to which the table will be added.
+     * @param invoice The [Invoice] object containing the list of items.
      */
     private fun addItemsTable(document: Document, invoice: Invoice) {
         val table = Table(floatArrayOf(0.5f, 2f, 1f, 1f, 1f, 1.5f))
@@ -240,7 +247,7 @@ class PdfGenerator @Inject constructor(
         // Table header
         val headerColor = DeviceRgb(0, 102, 204)
         val headers = arrayOf("#", "Item Description", "HSN", "Qty", "Rate", "Amount")
-        
+
         headers.forEach { headerText ->
             table.addHeaderCell(
                 Cell().add(Paragraph(headerText).setBold().setFontColor(ColorConstants.WHITE))
@@ -250,56 +257,24 @@ class PdfGenerator @Inject constructor(
             )
         }
 
-        // Table rows
+        // Table rows for each item
         invoice.items.forEachIndexed { index, item ->
-            // Serial number
-            table.addCell(
-                Cell().add(Paragraph("${index + 1}"))
-                    .setTextAlignment(TextAlignment.CENTER)
-                    .setFontSize(9f)
-            )
-
-            // Item name with unit
-            table.addCell(
-                Cell().add(Paragraph("${item.name}\n(${item.unit})"))
-                    .setFontSize(9f)
-            )
-
-            // HSN code
-            table.addCell(
-                Cell().add(Paragraph(item.hsnCode ?: "N/A"))
-                    .setTextAlignment(TextAlignment.CENTER)
-                    .setFontSize(9f)
-            )
-
-            // Quantity
-            table.addCell(
-                Cell().add(Paragraph(String.format("%.2f", item.quantity)))
-                    .setTextAlignment(TextAlignment.CENTER)
-                    .setFontSize(9f)
-            )
-
-            // Rate
-            table.addCell(
-                Cell().add(Paragraph("₹${String.format("%.2f", item.rate)}"))
-                    .setTextAlignment(TextAlignment.RIGHT)
-                    .setFontSize(9f)
-            )
-
-            // Amount
-            table.addCell(
-                Cell().add(Paragraph("₹${String.format("%.2f", item.amount)}"))
-                    .setTextAlignment(TextAlignment.RIGHT)
-                    .setFontSize(9f)
-                    .setBold()
-            )
+            table.addCell(Cell().add(Paragraph("${index + 1}")).setTextAlignment(TextAlignment.CENTER).setFontSize(9f))
+            table.addCell(Cell().add(Paragraph("${item.name}\n(${item.unit})")).setFontSize(9f))
+            table.addCell(Cell().add(Paragraph(item.hsnCode ?: "N/A")).setTextAlignment(TextAlignment.CENTER).setFontSize(9f))
+            table.addCell(Cell().add(Paragraph(String.format("%.2f", item.quantity))).setTextAlignment(TextAlignment.CENTER).setFontSize(9f))
+            table.addCell(Cell().add(Paragraph("₹${String.format("%.2f", item.rate)}")).setTextAlignment(TextAlignment.RIGHT).setFontSize(9f))
+            table.addCell(Cell().add(Paragraph("₹${String.format("%.2f", item.amount)}")).setTextAlignment(TextAlignment.RIGHT).setFontSize(9f).setBold())
         }
 
         document.add(table)
     }
 
     /**
-     * Add tax summary and total
+     * Adds the tax summary section, including subtotal, CGST, SGST, and the final total amount.
+     *
+     * @param document The iText [Document] to which the summary will be added.
+     * @param invoice The [Invoice] object containing the tax and total amounts.
      */
     private fun addTaxSummary(document: Document, invoice: Invoice) {
         val table = Table(floatArrayOf(3f, 1.5f))
@@ -307,50 +282,20 @@ class PdfGenerator @Inject constructor(
             .setMarginTop(10f)
 
         // Subtotal
-        table.addCell(
-            Cell().add(Paragraph("Subtotal").setTextAlignment(TextAlignment.RIGHT))
-                .setBorder(Border.NO_BORDER)
-                .setFontSize(10f)
-        )
-        table.addCell(
-            Cell().add(Paragraph("₹${String.format("%.2f", invoice.subtotal)}").setTextAlignment(TextAlignment.RIGHT))
-                .setBorder(Border.NO_BORDER)
-                .setFontSize(10f)
-        )
+        table.addCell(Cell().add(Paragraph("Subtotal").setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER).setFontSize(10f))
+        table.addCell(Cell().add(Paragraph("₹${String.format("%.2f", invoice.subtotal)}").setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER).setFontSize(10f))
 
         // CGST
-        table.addCell(
-            Cell().add(Paragraph("CGST (9%)").setTextAlignment(TextAlignment.RIGHT))
-                .setBorder(Border.NO_BORDER)
-                .setFontSize(10f)
-        )
-        table.addCell(
-            Cell().add(Paragraph("₹${String.format("%.2f", invoice.cgst)}").setTextAlignment(TextAlignment.RIGHT))
-                .setBorder(Border.NO_BORDER)
-                .setFontSize(10f)
-        )
+        table.addCell(Cell().add(Paragraph("CGST (9%)").setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER).setFontSize(10f))
+        table.addCell(Cell().add(Paragraph("₹${String.format("%.2f", invoice.cgst)}").setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER).setFontSize(10f))
 
         // SGST
-        table.addCell(
-            Cell().add(Paragraph("SGST (9%)").setTextAlignment(TextAlignment.RIGHT))
-                .setBorder(Border.NO_BORDER)
-                .setFontSize(10f)
-        )
-        table.addCell(
-            Cell().add(Paragraph("₹${String.format("%.2f", invoice.sgst)}").setTextAlignment(TextAlignment.RIGHT))
-                .setBorder(Border.NO_BORDER)
-                .setFontSize(10f)
-        )
+        table.addCell(Cell().add(Paragraph("SGST (9%)").setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER).setFontSize(10f))
+        table.addCell(Cell().add(Paragraph("₹${String.format("%.2f", invoice.sgst)}").setTextAlignment(TextAlignment.RIGHT)).setBorder(Border.NO_BORDER).setFontSize(10f))
 
         // Divider
-        table.addCell(
-            Cell().setBorder(Border.NO_BORDER)
-                .setBorderTop(SolidBorder(ColorConstants.BLACK, 1f))
-        )
-        table.addCell(
-            Cell().setBorder(Border.NO_BORDER)
-                .setBorderTop(SolidBorder(ColorConstants.BLACK, 1f))
-        )
+        table.addCell(Cell().setBorder(Border.NO_BORDER).setBorderTop(SolidBorder(ColorConstants.BLACK, 1f)))
+        table.addCell(Cell().setBorder(Border.NO_BORDER).setBorderTop(SolidBorder(ColorConstants.BLACK, 1f)))
 
         // Total
         table.addCell(
@@ -384,7 +329,9 @@ class PdfGenerator @Inject constructor(
     }
 
     /**
-     * Add footer with thank you message and declaration
+     * Adds the footer section with a thank you message and other closing remarks.
+     *
+     * @param document The iText [Document] to which the footer will be added.
      */
     private fun addFooter(document: Document) {
         document.add(

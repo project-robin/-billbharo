@@ -10,13 +10,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Helper class for sharing invoices via WhatsApp and other apps
- * 
- * Features:
- * - Direct WhatsApp sharing
- * - General share intent
- * - FileProvider URI handling
- * - PDF file validation
+ * A helper class for sharing files, particularly PDF invoices, via WhatsApp and other applications.
+ *
+ * This class handles the complexities of creating share intents, generating content URIs with
+ * [FileProvider], and targeting specific apps like WhatsApp.
+ *
+ * @property context The application context, used for creating intents and accessing the package manager.
  */
 @Singleton
 class ShareHelper @Inject constructor(
@@ -24,10 +23,13 @@ class ShareHelper @Inject constructor(
 ) {
 
     /**
-     * Share PDF invoice via WhatsApp
-     * @param pdfFilePath Absolute path to the PDF file
-     * @param phoneNumber Optional WhatsApp phone number (format: +919876543210)
-     * @return Result indicating success or failure
+     * Shares a PDF file via WhatsApp.
+     *
+     * If WhatsApp is not installed, it falls back to the general Android share sheet.
+     *
+     * @param pdfFilePath The absolute path to the PDF file to be shared.
+     * @param phoneNumber An optional WhatsApp phone number (e.g., "+919876543210") to pre-fill.
+     * @return A [Result] indicating whether the share intent was successfully launched.
      */
     fun shareViaWhatsApp(pdfFilePath: String, phoneNumber: String? = null): Result<Unit> {
         return try {
@@ -36,7 +38,6 @@ class ShareHelper @Inject constructor(
                 return Result.failure(Exception("PDF file not found"))
             }
 
-            // Get URI using FileProvider
             val uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
@@ -48,27 +49,25 @@ class ShareHelper @Inject constructor(
                 putExtra(Intent.EXTRA_STREAM, uri)
                 putExtra(Intent.EXTRA_TEXT, "Please find the invoice attached.")
                 putExtra(Intent.EXTRA_SUBJECT, "Invoice - ${file.nameWithoutExtension}")
-                
-                // Try to target WhatsApp directly
+
+                // Target WhatsApp directly
                 if (phoneNumber != null) {
-                    // Format: https://wa.me/919876543210
                     val whatsappUrl = "https://wa.me/$phoneNumber"
                     setPackage("com.whatsapp")
                     data = Uri.parse(whatsappUrl)
                 } else {
                     setPackage("com.whatsapp")
                 }
-                
+
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
-            // Check if WhatsApp is installed
             if (isWhatsAppInstalled()) {
                 context.startActivity(intent)
                 Result.success(Unit)
             } else {
-                // Fall back to general share if WhatsApp not installed
+                // Fall back to the general share sheet if WhatsApp is not found
                 shareViaIntent(pdfFilePath)
             }
         } catch (e: Exception) {
@@ -77,9 +76,12 @@ class ShareHelper @Inject constructor(
     }
 
     /**
-     * Share PDF via general Android share sheet
-     * @param pdfFilePath Absolute path to the PDF file
-     * @return Result indicating success or failure
+     * Shares a PDF file using the general Android share sheet.
+     *
+     * This allows the user to choose any compatible app to share the file with.
+     *
+     * @param pdfFilePath The absolute path to the PDF file.
+     * @return A [Result] indicating whether the share intent was successfully launched.
      */
     fun shareViaIntent(pdfFilePath: String): Result<Unit> {
         return try {
@@ -88,7 +90,6 @@ class ShareHelper @Inject constructor(
                 return Result.failure(Exception("PDF file not found"))
             }
 
-            // Get URI using FileProvider
             val uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
@@ -104,7 +105,6 @@ class ShareHelper @Inject constructor(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
-            // Create chooser
             val chooser = Intent.createChooser(intent, "Share Invoice").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -117,8 +117,11 @@ class ShareHelper @Inject constructor(
     }
 
     /**
-     * Share invoice to specific WhatsApp contact
-     * Opens WhatsApp with specific contact selected
+     * Shares a PDF file directly to a specific WhatsApp contact.
+     *
+     * @param pdfFilePath The absolute path to the PDF file.
+     * @param phoneNumber The phone number of the contact to share with.
+     * @return A [Result] indicating success or failure.
      */
     fun shareToWhatsAppContact(pdfFilePath: String, phoneNumber: String): Result<Unit> {
         return try {
@@ -127,10 +130,7 @@ class ShareHelper @Inject constructor(
                 return Result.failure(Exception("PDF file not found"))
             }
 
-            // Remove any formatting from phone number (spaces, dashes, etc.)
             val cleanNumber = phoneNumber.replace(Regex("[^0-9+]"), "")
-
-            // Get URI using FileProvider
             val uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
@@ -142,7 +142,7 @@ class ShareHelper @Inject constructor(
                 setPackage("com.whatsapp")
                 putExtra(Intent.EXTRA_STREAM, uri)
                 putExtra(Intent.EXTRA_TEXT, "Here is your invoice. Thank you!")
-                putExtra("jid", "$cleanNumber@s.whatsapp.net") // WhatsApp contact ID format
+                putExtra("jid", "$cleanNumber@s.whatsapp.net") // WhatsApp-specific contact JID
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -159,7 +159,10 @@ class ShareHelper @Inject constructor(
     }
 
     /**
-     * Open PDF file with default PDF viewer
+     * Opens a PDF file using the default PDF viewer application.
+     *
+     * @param pdfFilePath The absolute path to the PDF file.
+     * @return A [Result] indicating whether the view intent was successfully launched.
      */
     fun openPdf(pdfFilePath: String): Result<Unit> {
         return try {
@@ -188,7 +191,9 @@ class ShareHelper @Inject constructor(
     }
 
     /**
-     * Check if WhatsApp is installed on device
+     * Checks if the standard WhatsApp application is installed on the device.
+     *
+     * @return `true` if WhatsApp is installed, `false` otherwise.
      */
     fun isWhatsAppInstalled(): Boolean {
         return try {
@@ -200,7 +205,9 @@ class ShareHelper @Inject constructor(
     }
 
     /**
-     * Check if WhatsApp Business is installed
+     * Checks if the WhatsApp Business application is installed on the device.
+     *
+     * @return `true` if WhatsApp Business is installed, `false` otherwise.
      */
     fun isWhatsAppBusinessInstalled(): Boolean {
         return try {
@@ -212,7 +219,10 @@ class ShareHelper @Inject constructor(
     }
 
     /**
-     * Share via WhatsApp Business
+     * Shares a PDF file via the WhatsApp Business application.
+     *
+     * @param pdfFilePath The absolute path to the PDF file.
+     * @return A [Result] indicating success or failure.
      */
     fun shareViaWhatsAppBusiness(pdfFilePath: String): Result<Unit> {
         return try {

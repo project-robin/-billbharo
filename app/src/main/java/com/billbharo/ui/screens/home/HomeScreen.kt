@@ -38,6 +38,15 @@ import com.billbharo.ui.navigation.Screen
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+/**
+ * The main screen of the application, serving as the dashboard.
+ *
+ * This screen displays a summary of today's sales, pending credit, a list of recent invoices,
+ * and provides the primary entry point for creating new invoices via voice or manual input.
+ *
+ * @param navController The [NavController] for handling navigation to other screens.
+ * @param viewModel The [HomeViewModel] that provides state and handles business logic for this screen.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -46,19 +55,18 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    
-    // Permission launcher for RECORD_AUDIO
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             viewModel.startVoiceRecording()
         } else {
-            // Show error - permission denied
+            // TODO: Show a user-friendly message explaining why the permission is needed.
         }
     }
-    
-    // Observe voice result and navigate to NewInvoice screen
+
+    // When a voice result is received, navigate to the NewInvoiceScreen with the parsed data.
     LaunchedEffect(uiState.voiceResult) {
         uiState.voiceResult?.let { result ->
             navController.navigate(
@@ -68,8 +76,8 @@ fun HomeScreen(
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
-    
-    // Show error messages
+
+    // Display error messages in a Snackbar.
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
             snackbarHostState.showSnackbar(
@@ -79,7 +87,7 @@ fun HomeScreen(
             viewModel.clearError()
         }
     }
-    
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -111,7 +119,7 @@ fun HomeScreen(
                 onClick = { navController.navigate(Screen.NewInvoice.route) }
             ) {
                 Icon(
-                    Icons.Default.Add, 
+                    Icons.Default.Add,
                     contentDescription = stringResource(R.string.create_new_invoice)
                 )
             }
@@ -141,8 +149,7 @@ fun HomeScreen(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                
-                // Voice Recording Button (New Feature)
+
                 item {
                     VoiceRecordingCard(
                         isRecording = uiState.isVoiceRecording,
@@ -151,7 +158,6 @@ fun HomeScreen(
                             if (uiState.isVoiceRecording) {
                                 viewModel.stopVoiceRecording()
                             } else {
-                                // Check permission before starting
                                 val permissionStatus = ContextCompat.checkSelfPermission(
                                     context,
                                     Manifest.permission.RECORD_AUDIO
@@ -164,7 +170,6 @@ fun HomeScreen(
                             }
                         },
                         onResultReceived = { itemName, quantity, price ->
-                            // Navigate to NewInvoice with pre-filled data
                             navController.navigate(
                                 "${Screen.NewInvoice.route}?item=$itemName&qty=$quantity&price=$price"
                             )
@@ -172,7 +177,6 @@ fun HomeScreen(
                     )
                 }
 
-                // Dashboard Cards
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -191,7 +195,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Today's Invoices Section
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -214,7 +217,7 @@ fun HomeScreen(
                     items(uiState.recentInvoices) { invoice ->
                         InvoiceCard(
                             invoice = invoice,
-                            onClick = { /* Navigate to invoice detail */ },
+                            onClick = { /* TODO: Navigate to invoice detail screen */ },
                             onShare = { viewModel.shareInvoice(invoice) }
                         )
                     }
@@ -224,6 +227,13 @@ fun HomeScreen(
     }
 }
 
+/**
+ * A composable that displays a summary card on the dashboard.
+ *
+ * @param title The title of the card (e.g., "Total Sales Today").
+ * @param value The main value to be displayed (e.g., "₹123.45").
+ * @param modifier A [Modifier] for customizing the card's layout.
+ */
 @Composable
 fun DashboardCard(
     title: String,
@@ -255,6 +265,13 @@ fun DashboardCard(
     }
 }
 
+/**
+ * A composable that displays a single invoice in a list.
+ *
+ * @param invoice The [Invoice] data to display.
+ * @param onClick A lambda function to be invoked when the card is clicked.
+ * @param onShare A lambda function to be invoked when the share button is clicked.
+ */
 @Composable
 fun InvoiceCard(
     invoice: Invoice,
@@ -263,7 +280,7 @@ fun InvoiceCard(
 ) {
     val dateFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
     val timeString = dateFormat.format(invoice.timestamp)
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -297,7 +314,7 @@ fun InvoiceCard(
                     )
                 }
             }
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -326,7 +343,7 @@ fun InvoiceCard(
                         )
                     }
                 }
-                
+
                 if (!invoice.pdfPath.isNullOrEmpty()) {
                     IconButton(
                         onClick = onShare,
@@ -344,6 +361,9 @@ fun InvoiceCard(
     }
 }
 
+/**
+ * A composable that displays a placeholder card when there are no invoices to show.
+ */
 @Composable
 fun EmptyInvoicesCard() {
     Card(
@@ -378,8 +398,15 @@ fun EmptyInvoicesCard() {
 }
 
 /**
- * Voice Recording Card - Prominent UI for voice-to-invoice on Home Screen
- * Design: Circular mic button (80dp), green background, toggle recording state
+ * A prominent card on the Home screen for initiating voice-to-invoice creation.
+ *
+ * This card features a large microphone button and provides visual feedback during the
+ * recording and processing states.
+ *
+ * @param isRecording A boolean indicating if the voice recording is currently active.
+ * @param recordingStatus A string describing the current status of the recording (e.g., "Listening...").
+ * @param onRecordClick A lambda function to be invoked when the microphone button is clicked.
+ * @param onResultReceived A callback that provides the parsed invoice item data.
  */
 @Composable
 fun VoiceRecordingCard(
@@ -394,7 +421,7 @@ fun VoiceRecordingCard(
             containerColor = if (isRecording) {
                 MaterialTheme.colorScheme.errorContainer
             } else {
-                Color(0xFF4CAF50) // Primary green from design system
+                Color(0xFF4CAF50) // Primary green color
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -406,20 +433,11 @@ fun VoiceRecordingCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Large Circular Mic Button (80dp as per design system)
             FloatingActionButton(
                 onClick = onRecordClick,
                 modifier = Modifier.size(80.dp),
-                containerColor = if (isRecording) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    Color.White
-                },
-                contentColor = if (isRecording) {
-                    Color.White
-                } else {
-                    Color(0xFF4CAF50)
-                }
+                containerColor = if (isRecording) MaterialTheme.colorScheme.error else Color.White,
+                contentColor = if (isRecording) Color.White else Color(0xFF4CAF50)
             ) {
                 Icon(
                     imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.KeyboardVoice,
@@ -427,8 +445,7 @@ fun VoiceRecordingCard(
                     modifier = Modifier.size(40.dp)
                 )
             }
-            
-            // Main Text
+
             Text(
                 text = if (isRecording) "Recording..." else "Speak to create bill",
                 style = MaterialTheme.typography.headlineSmall,
@@ -436,16 +453,14 @@ fun VoiceRecordingCard(
                 color = Color.White,
                 textAlign = TextAlign.Center
             )
-            
-            // Hindi Hint (as per screenshot)
+
             Text(
-                text = if (isRecording) recordingStatus else "उदाहरण: दान शेड, एक तोनी",
+                text = if (isRecording) recordingStatus else "उदाहरण: दान शेड, एक तोनी", // Example: "do bread, ek paani"
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.9f),
                 textAlign = TextAlign.Center
             )
-            
-            // Recording Status Indicator
+
             if (isRecording) {
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth(),

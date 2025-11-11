@@ -5,13 +5,22 @@ import android.content.res.Configuration
 import android.os.Build
 import java.util.Locale
 
+/**
+ * A utility object for managing application locale and language settings.
+ *
+ * This object provides helper functions to set the app's current locale, retrieve the
+ * current language, and get the display name for a given language code.
+ */
 object LocaleHelper {
-    
     /**
-     * Update the app's locale based on language code
-     * @param context Application context
-     * @param languageCode Language code (en, hi, etc.)
-     * @return Context with updated locale
+     * Sets the application's locale to the specified language.
+     *
+     * This function updates the app's configuration to use the new locale, ensuring that
+     * all resources are displayed in the selected language.
+     *
+     * @param context The application context.
+     * @param languageCode The language code to set (e.g., "en", "hi").
+     * @return A new [Context] with the updated locale configuration.
      */
     fun setLocale(context: Context, languageCode: String): Context {
         val locale = Locale(languageCode)
@@ -19,7 +28,7 @@ object LocaleHelper {
 
         val config = Configuration(context.resources.configuration)
         config.setLocale(locale)
-        
+
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             context.createConfigurationContext(config)
         } else {
@@ -30,9 +39,10 @@ object LocaleHelper {
     }
 
     /**
-     * Get the current locale's language code
-     * @param context Application context
-     * @return Current language code
+     * Retrieves the language code of the current locale.
+     *
+     * @param context The application context.
+     * @return The current language code (e.g., "en", "hi").
      */
     fun getCurrentLanguage(context: Context): String {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -44,9 +54,10 @@ object LocaleHelper {
     }
 
     /**
-     * Get localized language name
-     * @param languageCode Language code (en, hi, etc.)
-     * @return Display name of the language
+     * Gets the display name for a given language code.
+     *
+     * @param languageCode The language code (e.g., "en", "hi").
+     * @return The localized display name of the language (e.g., "English", "हिंदी").
      */
     fun getLanguageDisplayName(languageCode: String): String {
         return when (languageCode) {
