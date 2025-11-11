@@ -25,6 +25,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.billbharo.R
 
+/**
+ * A composable function that displays the screen for creating a new invoice.
+ *
+ * This screen allows users to add items manually or via voice input, enter customer details,
+ * select a payment mode, and save the final invoice as a PDF.
+ *
+ * @param navController The [NavController] for handling navigation.
+ * @param viewModel The [NewInvoiceViewModel] that provides state and handles business logic.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewInvoiceScreen(
@@ -34,18 +43,15 @@ fun NewInvoiceScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // Permission launcher for RECORD_AUDIO
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             viewModel.startVoiceRecognition()
         } else {
-            viewModel.updateError("Microphone permission is required for voice input")
+            viewModel.updateError("Microphone permission is required for voice input.")
         }
     }
-
-    // Navigation will be handled by share dialog dismiss
 
     Scaffold(
         topBar = {
@@ -53,10 +59,7 @@ fun NewInvoiceScreen(
                 title = { Text(stringResource(R.string.new_invoice)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -65,30 +68,19 @@ fun NewInvoiceScreen(
                             if (uiState.isVoiceInputActive) {
                                 viewModel.stopVoiceRecognition()
                             } else {
-                                // Check permission before starting
-                                val permissionStatus = ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.RECORD_AUDIO
-                                )
-                                if (permissionStatus == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                val permission = Manifest.permission.RECORD_AUDIO
+                                if (ContextCompat.checkSelfPermission(context, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                                     viewModel.startVoiceRecognition()
                                 } else {
-                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    permissionLauncher.launch(permission)
                                 }
                             }
                         },
                         colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (uiState.isVoiceInputActive) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onPrimary
-                            }
+                            contentColor = if (uiState.isVoiceInputActive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = stringResource(R.string.voice_input)
-                        )
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.voice_input))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -116,37 +108,31 @@ fun NewInvoiceScreen(
         }
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Customer Information Section
             item {
                 CustomerInfoSection(
                     customerName = uiState.customerName,
                     customerPhone = uiState.customerPhone,
-                    onNameChange = { viewModel.updateCustomerName(it) },
-                    onPhoneChange = { viewModel.updateCustomerPhone(it) }
+                    onNameChange = viewModel::updateCustomerName,
+                    onPhoneChange = viewModel::updateCustomerPhone
                 )
             }
 
-            // Voice Input Indicator
             if (uiState.isVoiceInputActive) {
                 item {
                     VoiceInputIndicator(
                         status = uiState.voiceStatus,
                         recognizedText = uiState.voiceInputText,
-                        onStop = { viewModel.stopVoiceRecognition() }
+                        onStop = viewModel::stopVoiceRecognition
                     )
                 }
             }
 
-            // Add Item Button
             item {
                 OutlinedButton(
-                    onClick = { viewModel.showAddItemDialog() },
+                    onClick = viewModel::showAddItemDialog,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
@@ -155,7 +141,6 @@ fun NewInvoiceScreen(
                 }
             }
 
-            // Items List
             if (uiState.items.isNotEmpty()) {
                 items(uiState.items) { item ->
                     InvoiceItemCard(
@@ -164,7 +149,6 @@ fun NewInvoiceScreen(
                     )
                 }
 
-                // Totals Section
                 item {
                     TotalsSection(
                         subtotal = uiState.subtotal,
@@ -174,11 +158,10 @@ fun NewInvoiceScreen(
                     )
                 }
 
-                // Payment Mode Section
                 item {
                     PaymentModeSection(
                         selectedMode = uiState.paymentMode,
-                        onModeSelected = { viewModel.updatePaymentMode(it) }
+                        onModeSelected = viewModel::updatePaymentMode
                     )
                 }
             } else {
@@ -188,25 +171,21 @@ fun NewInvoiceScreen(
             }
         }
 
-        // Add Item Dialog
         if (uiState.showAddItemDialog) {
             AddItemDialog(
                 initialItemName = uiState.voiceRecognizedItemName,
                 initialQuantity = uiState.voiceRecognizedQuantity,
                 initialPrice = uiState.voiceRecognizedPrice,
-                onDismiss = { viewModel.hideAddItemDialog() },
-                onAdd = { name, quantity, rate ->
-                    viewModel.addItem(name, quantity, rate)
-                }
+                onDismiss = viewModel::hideAddItemDialog,
+                onAdd = viewModel::addItem
             )
         }
 
-        // Share Dialog
         if (uiState.showShareDialog && uiState.pdfPath != null) {
             ShareInvoiceDialog(
-                onShareWhatsApp = { viewModel.shareViaWhatsApp() },
-                onShareOther = { viewModel.shareViaOther() },
-                onOpenPdf = { viewModel.openPdf() },
+                onShareWhatsApp = viewModel::shareViaWhatsApp,
+                onShareOther = viewModel::shareViaOther,
+                onOpenPdf = viewModel::openPdf,
                 onDismiss = {
                     viewModel.dismissShareDialog()
                     navController.navigateUp()
@@ -214,16 +193,20 @@ fun NewInvoiceScreen(
             )
         }
 
-        // Error Snackbar
         uiState.errorMessage?.let { error ->
-            ErrorSnackbar(
-                message = error,
-                onDismiss = { viewModel.clearError() }
-            )
+            ErrorSnackbar(message = error, onDismiss = viewModel::clearError)
         }
     }
 }
 
+/**
+ * A composable section for entering customer information.
+ *
+ * @param customerName The current value for the customer's name.
+ * @param customerPhone The current value for the customer's phone number.
+ * @param onNameChange A callback for when the customer's name changes.
+ * @param onPhoneChange A callback for when the customer's phone number changes.
+ */
 @Composable
 fun CustomerInfoSection(
     customerName: String,
@@ -244,7 +227,6 @@ fun CustomerInfoSection(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-
             OutlinedTextField(
                 value = customerName,
                 onValueChange = onNameChange,
@@ -252,7 +234,6 @@ fun CustomerInfoSection(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-
             OutlinedTextField(
                 value = customerPhone,
                 onValueChange = onPhoneChange,
@@ -265,6 +246,13 @@ fun CustomerInfoSection(
     }
 }
 
+/**
+ * A composable that provides visual feedback during voice input.
+ *
+ * @param status A string describing the current status (e.g., "Listening...").
+ * @param recognizedText The currently recognized text.
+ * @param onStop A callback to stop the voice recognition.
+ */
 @Composable
 fun VoiceInputIndicator(
     status: String,
@@ -273,17 +261,12 @@ fun VoiceInputIndicator(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header with stop button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -305,7 +288,6 @@ fun VoiceInputIndicator(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
-                
                 IconButton(onClick = onStop) {
                     Icon(
                         imageVector = Icons.Default.Delete,
@@ -314,8 +296,6 @@ fun VoiceInputIndicator(
                     )
                 }
             }
-            
-            // Status
             if (status.isNotEmpty()) {
                 Text(
                     text = status,
@@ -323,14 +303,8 @@ fun VoiceInputIndicator(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
-            
-            // Recognized text
             if (recognizedText.isNotEmpty()) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Text(
                         text = recognizedText,
                         style = MaterialTheme.typography.bodyLarge,
@@ -343,6 +317,12 @@ fun VoiceInputIndicator(
     }
 }
 
+/**
+ * A composable that displays a single item in the invoice list.
+ *
+ * @param item The [InvoiceItemUI] to display.
+ * @param onDelete A callback to delete the item.
+ */
 @Composable
 fun InvoiceItemCard(
     item: InvoiceItemUI,
@@ -353,9 +333,7 @@ fun InvoiceItemCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -372,7 +350,6 @@ fun InvoiceItemCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "₹${String.format("%.2f", item.amount)}",
@@ -392,6 +369,14 @@ fun InvoiceItemCard(
     }
 }
 
+/**
+ * A composable section that displays the invoice totals (subtotal, GST, total).
+ *
+ * @param subtotal The subtotal amount.
+ * @param cgst The CGST amount.
+ * @param sgst The SGST amount.
+ * @param total The final total amount.
+ */
 @Composable
 fun TotalsSection(
     subtotal: Double,
@@ -401,9 +386,7 @@ fun TotalsSection(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -413,15 +396,18 @@ fun TotalsSection(
             TotalRow(stringResource(R.string.cgst), cgst)
             TotalRow(stringResource(R.string.sgst), sgst)
             Divider(modifier = Modifier.padding(vertical = 4.dp))
-            TotalRow(
-                stringResource(R.string.total),
-                total,
-                isTotal = true
-            )
+            TotalRow(stringResource(R.string.total), total, isTotal = true)
         }
     }
 }
 
+/**
+ * A helper composable for displaying a single row in the totals section.
+ *
+ * @param label The label for the value (e.g., "Subtotal").
+ * @param value The numerical value.
+ * @param isTotal A flag to indicate if this is the final total row, for styling purposes.
+ */
 @Composable
 fun TotalRow(label: String, value: Double, isTotal: Boolean = false) {
     Row(
@@ -442,6 +428,12 @@ fun TotalRow(label: String, value: Double, isTotal: Boolean = false) {
     }
 }
 
+/**
+ * A composable section for selecting the payment mode.
+ *
+ * @param selectedMode The currently selected payment mode.
+ * @param onModeSelected A callback for when a new payment mode is selected.
+ */
 @Composable
 fun PaymentModeSection(
     selectedMode: String,
@@ -460,7 +452,6 @@ fun PaymentModeSection(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -487,18 +478,17 @@ fun PaymentModeSection(
     }
 }
 
+/**
+ * A placeholder composable to be displayed when the invoice has no items.
+ */
 @Composable
 fun EmptyItemsPlaceholder() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(48.dp),
+            modifier = Modifier.fillMaxWidth().padding(48.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -510,6 +500,15 @@ fun EmptyItemsPlaceholder() {
     }
 }
 
+/**
+ * A dialog for adding a new item to the invoice.
+ *
+ * @param initialItemName An initial value for the item name field.
+ * @param initialQuantity An initial value for the quantity field.
+ * @param initialPrice An initial value for the price field.
+ * @param onDismiss A callback to dismiss the dialog.
+ * @param onAdd A callback to add the new item, providing the name, quantity, and rate.
+ */
 @Composable
 fun AddItemDialog(
     initialItemName: String = "",
@@ -534,7 +533,6 @@ fun AddItemDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-
                 OutlinedTextField(
                     value = quantity,
                     onValueChange = { quantity = it },
@@ -543,7 +541,6 @@ fun AddItemDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-
                 OutlinedTextField(
                     value = rate,
                     onValueChange = { rate = it },
@@ -573,6 +570,14 @@ fun AddItemDialog(
     )
 }
 
+/**
+ * A dialog that appears after an invoice is saved, offering sharing options.
+ *
+ * @param onShareWhatsApp A callback to share the invoice via WhatsApp.
+ * @param onShareOther A callback to share the invoice via other apps.
+ * @param onOpenPdf A callback to open the generated PDF.
+ * @param onDismiss A callback to dismiss the dialog.
+ */
 @Composable
 fun ShareInvoiceDialog(
     onShareWhatsApp: () -> Unit,
@@ -582,32 +587,17 @@ fun ShareInvoiceDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        },
+        icon = { Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
         title = {
-            Text(
-                text = "Invoice Saved!",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = "Invoice Saved!", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Your invoice has been saved as PDF. What would you like to do?",
+                    text = "Your invoice has been saved as a PDF. What would you like to do?",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
                 Spacer(modifier = Modifier.height(8.dp))
-                
-                // Share via WhatsApp
                 OutlinedButton(
                     onClick = {
                         onShareWhatsApp()
@@ -615,16 +605,10 @@ fun ShareInvoiceDialog(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Share via WhatsApp")
                 }
-                
-                // Share via other apps
                 OutlinedButton(
                     onClick = {
                         onShareOther()
@@ -632,16 +616,10 @@ fun ShareInvoiceDialog(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Share via Other Apps")
                 }
-                
-                // Open PDF
                 OutlinedButton(
                     onClick = {
                         onOpenPdf()
@@ -649,11 +627,7 @@ fun ShareInvoiceDialog(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Open PDF")
                 }
@@ -667,12 +641,16 @@ fun ShareInvoiceDialog(
     )
 }
 
+/**
+ * A composable that displays a custom Snackbar for showing error messages.
+ *
+ * @param message The error message to display.
+ * @param onDismiss A callback to dismiss the Snackbar.
+ */
 @Composable
 fun ErrorSnackbar(message: String, onDismiss: () -> Unit) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         Snackbar(

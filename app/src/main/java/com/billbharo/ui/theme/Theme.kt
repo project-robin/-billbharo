@@ -10,6 +10,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
+/**
+ * The default light color scheme for the application.
+ *
+ * This is used on devices that do not support dynamic theming (below Android 12).
+ */
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
     onPrimary = OnPrimary,
@@ -33,6 +38,17 @@ private val LightColorScheme = lightColorScheme(
     onSurface = OnSurface
 )
 
+/**
+ * The main theme for the Bill Bharo application.
+ *
+ * This composable function applies the Material 3 theme to its content. It supports dynamic
+ * color theming on Android 12+ and falls back to a predefined light color scheme on older versions.
+ *
+ * @param darkTheme Whether the theme should be in dark mode. Defaults to the system setting.
+ * @param dynamicColor Whether to use dynamic theming (Material You) on supported devices.
+ *                     Defaults to `true`.
+ * @param content The composable content to which the theme will be applied.
+ */
 @Composable
 fun BillBharoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

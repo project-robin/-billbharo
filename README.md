@@ -167,6 +167,9 @@ BillBharo/
 - **[Quick Reference](QUICK_REFERENCE.md)** - Developer quick start
 - **[Deployment Checklist](DEPLOYMENT_CHECKLIST.md)** - Pre-release verification
 
+### ✍️ Doc-Comments
+The codebase includes comprehensive KDoc comments on all public classes, methods, and functions. These comments are intended to help new developers understand the purpose of each component and how to use it.
+
 ## 🔒 Security
 
 - ✅ API keys stored securely in `BuildConfig` (never in source code)

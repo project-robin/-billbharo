@@ -6,6 +6,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
+/**
+ * Defines the typography for the Bill Bharo application, based on the Material 3 type scale.
+ *
+ * This [Typography] object includes styles for different text categories, such as display,
+ * headline, title, body, and label, which are used throughout the app to ensure a consistent
+ * and readable user interface.
+ */
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.Default,

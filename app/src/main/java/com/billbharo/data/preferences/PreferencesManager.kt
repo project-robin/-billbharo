@@ -12,9 +12,18 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// Extension property for DataStore
+/**
+ * Extension property for [Context] to provide a singleton instance of [DataStore].
+ */
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "bill_bharo_preferences")
 
+/**
+ * Manages application preferences using Jetpack DataStore.
+ *
+ * This class provides methods to get and set user preferences, such as the app language.
+ *
+ * @property context The application context, provided by Hilt.
+ */
 @Singleton
 class PreferencesManager @Inject constructor(
     @ApplicationContext private val context: Context
@@ -22,22 +31,29 @@ class PreferencesManager @Inject constructor(
     private val dataStore = context.dataStore
 
     companion object {
+        /** [Preferences.Key] for storing the app language. */
         val LANGUAGE_KEY = stringPreferencesKey("app_language")
+
+        /** Constant for the English language code. */
         const val LANGUAGE_ENGLISH = "en"
+
+        /** Constant for the Hindi language code. */
         const val LANGUAGE_HINDI = "hi"
     }
 
     /**
-     * Get the currently selected language
-     * Defaults to Hindi if not set
+     * A [Flow] that emits the currently selected language.
+     *
+     * It defaults to Hindi ([LANGUAGE_HINDI]) if no language is set.
      */
     val languageFlow: Flow<String> = dataStore.data.map { preferences ->
         preferences[LANGUAGE_KEY] ?: LANGUAGE_HINDI
     }
 
     /**
-     * Set the app language
-     * @param languageCode The language code (en, hi)
+     * Sets the application language.
+     *
+     * @param languageCode The language code to set (e.g., "en", "hi").
      */
     suspend fun setLanguage(languageCode: String) {
         dataStore.edit { preferences ->
@@ -46,8 +62,11 @@ class PreferencesManager @Inject constructor(
     }
 
     /**
-     * Get the current language synchronously
-     * Returns Hindi by default
+     * Retrieves the current language synchronously.
+     *
+     * Note: This function is suspendable and should be called from a coroutine.
+     *
+     * @return The current language code, defaulting to Hindi ([LANGUAGE_HINDI]).
      */
     suspend fun getCurrentLanguage(): String {
         var currentLanguage = LANGUAGE_HINDI

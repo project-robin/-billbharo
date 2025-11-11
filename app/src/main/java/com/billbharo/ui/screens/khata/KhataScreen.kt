@@ -27,6 +27,15 @@ import androidx.navigation.NavController
 import com.billbharo.R
 import com.billbharo.data.local.entities.CustomerEntity
 
+/**
+ * A composable function that displays the Khata (customer credit) screen.
+ *
+ * This screen shows a list of customers with outstanding credit balances, along with a summary
+ * of the total pending credit. It also includes a search functionality to filter customers.
+ *
+ * @param navController The [NavController] for handling navigation actions.
+ * @param viewModel The [KhataViewModel] that provides state and handles business logic for this screen.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KhataScreen(
@@ -40,11 +49,11 @@ fun KhataScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     if (showSearch) {
                         OutlinedTextField(
                             value = searchQuery,
-                            onValueChange = { 
+                            onValueChange = {
                                 searchQuery = it
                                 viewModel.searchCustomers(it)
                             },
@@ -63,7 +72,7 @@ fun KhataScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { 
+                    IconButton(onClick = {
                         if (showSearch) {
                             showSearch = false
                             searchQuery = ""
@@ -101,87 +110,97 @@ fun KhataScreen(
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else if (uiState.customers.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = stringResource(R.string.no_customers),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Create invoices with credit to see customers here",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    CircularProgressIndicator()
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Total Credit Card
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            uiState.customers.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.total_credit),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "₹${String.format("%.2f", uiState.totalCredit)}",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
+                        Text(
+                            text = stringResource(R.string.no_customers),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Create invoices with credit to see customers here",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
-
-                // Customer List
-                items(uiState.customers) { customerWithCredit ->
-                    CustomerCreditCard(
-                        customer = customerWithCredit.customer,
-                        creditAmount = customerWithCredit.totalCreditAmount,
-                        onClick = { /* Navigate to customer detail */ }
-                    )
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        TotalCreditCard(totalCredit = uiState.totalCredit)
+                    }
+                    items(uiState.customers) { customerWithCredit ->
+                        CustomerCreditCard(
+                            customer = customerWithCredit.customer,
+                            creditAmount = customerWithCredit.totalCreditAmount,
+                            onClick = { /* TODO: Navigate to customer detail screen */ }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+/**
+ * A composable that displays a summary card for the total outstanding credit.
+ *
+ * @param totalCredit The total credit amount to display.
+ */
+@Composable
+private fun TotalCreditCard(totalCredit: Double) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.total_credit),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "₹${String.format("%.2f", totalCredit)}",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
+/**
+ * A composable that displays a card for a single customer with their outstanding credit.
+ *
+ * @param customer The [CustomerEntity] data for the customer.
+ * @param creditAmount The outstanding credit amount for the customer.
+ * @param onClick A lambda function to be invoked when the card is clicked.
+ */
 @Composable
 fun CustomerCreditCard(
     customer: CustomerEntity,
@@ -218,7 +237,7 @@ fun CustomerCreditCard(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                
+
                 if (!customer.phone.isNullOrEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
@@ -239,7 +258,7 @@ fun CustomerCreditCard(
                     }
                 }
             }
-            
+
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "₹${String.format("%.2f", creditAmount)}",
